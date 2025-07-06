@@ -22,5 +22,11 @@ enum class ErrorType {
     /**
      * Pengguna berada di lokasi yang valid tetapi di luar radius yang ditentukan.
      */
-    OUTSIDE_GEOFENCE
+    OUTSIDE_GEOFENCE,
+
+    /**
+     * Lokasi terdeteksi tidak wajar setelah melalui verifikasi dua langkah
+     * (misal: akurasi dan koordinat statis sempurna, mengindikasikan data sintetis).
+     */
+    UNNATURAL_LOCATION_DETECTED
 }

@@ -50,7 +50,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.github.Akmaloktav"
             artifactId = "geovalidator"
-            version = "1.0.1"
+            version = "1.1.0"
             afterEvaluate {
                 from(components["release"])
             }

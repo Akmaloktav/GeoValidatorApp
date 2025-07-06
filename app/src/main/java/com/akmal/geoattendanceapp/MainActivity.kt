@@ -85,6 +85,7 @@ class MainActivity : AppCompatActivity() {
                             ErrorType.LOCATION_UNAVAILABLE -> "Gagal: Tidak bisa mendapatkan lokasi. Pastikan GPS aktif."
                             ErrorType.MOCK_LOCATION_DETECTED -> "GAGAL:\nTERDETEKSI LOKASI PALSU!"
                             ErrorType.OUTSIDE_GEOFENCE -> "Gagal: Anda berada di luar area yang ditentukan."
+                            ErrorType.UNNATURAL_LOCATION_DETECTED -> "Verifikasi gagal, data lokasi tidak wajar."
                         }
                         binding.tvResult.text = errorText
                     }

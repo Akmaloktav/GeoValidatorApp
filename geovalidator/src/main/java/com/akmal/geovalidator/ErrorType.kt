@@ -2,31 +2,31 @@ package com.akmal.geovalidator
 
 /**
  * Enum yang merepresentasikan alasan spesifik mengapa validasi lokasi gagal.
+ * Setiap error kini memiliki kategori untuk penanganan yang lebih fleksibel.
  */
-enum class ErrorType {
+enum class ErrorType(val category: ErrorCategory) {
     /**
      * Izin lokasi (ACCESS_FINE_LOCATION) belum diberikan oleh pengguna.
      */
-    PERMISSION_MISSING,
+    PERMISSION_MISSING(ErrorCategory.SETUP),
 
     /**
      * Gagal mendapatkan lokasi dari perangkat (misal: GPS mati atau tidak ada sinyal).
      */
-    LOCATION_UNAVAILABLE,
+    LOCATION_UNAVAILABLE(ErrorCategory.OPERATIONAL),
 
     /**
      * Terdeteksi bahwa pengguna menggunakan lokasi palsu (mock location).
      */
-    MOCK_LOCATION_DETECTED,
+    MOCK_LOCATION_DETECTED(ErrorCategory.SECURITY),
 
     /**
      * Pengguna berada di lokasi yang valid tetapi di luar radius yang ditentukan.
      */
-    OUTSIDE_GEOFENCE,
+    OUTSIDE_GEOFENCE(ErrorCategory.OPERATIONAL),
 
     /**
-     * Lokasi terdeteksi tidak wajar setelah melalui verifikasi dua langkah
-     * (misal: akurasi dan koordinat statis sempurna, mengindikasikan data sintetis).
+     * Lokasi terdeteksi tidak wajar setelah melalui verifikasi dua langkah.
      */
-    UNNATURAL_LOCATION_DETECTED
+    UNNATURAL_LOCATION_DETECTED(ErrorCategory.SECURITY)
 }

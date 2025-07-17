@@ -126,7 +126,7 @@ private val requestPermissionLauncher =
     }
 
 contoh eksekusi ketika pengecekan lokasi
-fun triggerAttendanceValidation() {
+fun checkLocationPermission() {
     // 1. cek izin terlebih dahulu
     if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
         // izin SUDAH ADA panggil fungsi

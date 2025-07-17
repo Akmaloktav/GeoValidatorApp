@@ -110,10 +110,30 @@ fun startValidation() {
         }
     }
 }
+```
+PENTING: Fungsi geoValidator.validate() bergantung pada akses lokasi dari perangkat. Oleh karena itu, fungsi ini hanya boleh dipanggil SETELAH Anda memastikan izin ACCESS_FINE_LOCATION telah diberikan oleh pengguna. Memanggil .validate() sebelum izin dikonfirmasi akan menyebabkan library mengembalikan error PERMISSION_MISSING. Pola di bawah ini adalah cara yang aman dan direkomendasikan untuk mencegah hal tersebut.
+```kotlin
+contoh eksekusi di dalam launcher
+private val requestPermissionLauncher =
+    registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+        if (isGranted) {
+            // Izin baru saja diberikan, sekarang aman untuk memulai validasi
+            startValidation() 
+        } else {
+            // Tangani kasus jika pengguna menolak izin
+            ...
+        }
+    }
 
-// Contoh pemanggilan saat tombol ditekan
-binding.buttonCheckIn.setOnClickListener {
-    startValidation()
+contoh eksekusi ketika pengecekan lokasi
+fun triggerAttendanceValidation() {
+    // 1. cek izin terlebih dahulu
+    if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        // izin SUDAH ADA panggil fungsi
+        startValidation()
+    } else {
+        requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 }
 ```
 

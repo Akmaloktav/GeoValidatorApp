@@ -100,7 +100,7 @@ fun startValidation() {
                 is ValidationResult.Success -> {
                     val location = result.location
                     Toast.makeText(this, "VALIDASI SUKSES di ${location.latitude}", Toast.LENGTH_SHORT).show()
-                    // Lakukan absensi...
+                    // Eksekusi lainnya...
                 }
                 // Jika gagal, cukup jalankan aksi yang sudah disiapkan
                 is ValidationResult.Failure -> {

@@ -47,6 +47,10 @@ dependencies {
 
 ## Contoh Penggunaan Cepat
 Berikut adalah contoh lengkap cara menginisialisasi dan menggunakan GeoValidator di dalam sebuah Activity.
+
+### Inisialisasi GeoValidator
+Di sini Anda mengatur semua konfigurasi dan aksi penanganan error.
+
 ```kotlin
 // Inisialisasi validator dan konfigurasikan aksi penanganan error
 val geoValidator = GeoValidator.Builder(this)
@@ -61,8 +65,12 @@ val geoValidator = GeoValidator.Builder(this)
         Toast.makeText(this, "OPERASIONAL: $message", Toast.LENGTH_SHORT).show() 
     }
     .build()
+```
+### Menjalankan Validasi
+Setelah diinisialisasi, panggil metode .validate() untuk memulai proses pengecekan. Metode ini bersifat asynchronous dan akan mengembalikan hasilnya melalui callback.
 
-// Jalankan validasi
+```kotlin
+// Contoh membungkusnya dalam fungsi
 fun startValidation() {
     geoValidator.validate { result ->
         runOnUiThread {
@@ -80,6 +88,11 @@ fun startValidation() {
             }
         }
     }
+}
+
+// Contoh pemanggilan saat tombol ditekan
+binding.buttonCheckIn.setOnClickListener {
+    startValidation()
 }
 ```
 

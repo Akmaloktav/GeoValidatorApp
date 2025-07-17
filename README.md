@@ -1,0 +1,104 @@
+# GeoValidator 🛡️📍
+
+Sebuah library Android (Kotlin) yang menyediakan fungsionalitas validasi lokasi secara komprehensif untuk mengamankan sistem absensi berbasis Geolocation.
+
+---
+
+## Deskripsi
+
+**GeoValidator** membungkus logika validasi lokasi yang kompleks ke dalam komponen yang sederhana dan mudah digunakan. Tujuannya adalah untuk memisahkan logika keamanan dari logika bisnis aplikasi, sehingga developer bisa dengan cepat mengimplementasikan sistem absensi yang aman tanpa harus menangani seluk-beluk API lokasi dan celah keamanannya.
+
+Library ini menyediakan verifikasi berlapis, mulai dari pengecekan dasar hingga analisis perilaku data GPS untuk mendeteksi anomali.
+
+---
+
+## Fitur Utama
+
+* **Validasi Geofence:** Memastikan lokasi pengguna berada di dalam radius area yang ditentukan.
+* **Deteksi Lokasi Palsu (Dasar):** Menggunakan flag `isMock` bawaan sistem Android.
+* **Deteksi Lokasi Palsu (Lanjutan):** Melakukan verifikasi 2 langkah untuk mendeteksi data GPS yang bersifat statis dan tidak wajar.
+* **Penanganan Error Terkategori:** Mengelompokkan error ke dalam kategori (`SECURITY`, `OPERATIONAL`, `SETUP`) untuk penanganan yang lebih bersih.
+* **Konfigurasi Fleksibel:** Menggunakan Builder Pattern untuk setup yang mudah dibaca dan diatur.
+
+---
+
+## Instalasi
+
+### Langkah 1: Tambahkan JitPack ke Repositori Proyek
+Tambahkan URL JitPack di file `settings.gradle.kts` Anda:
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        //...
+        maven { url '[https://jitpack.io](https://jitpack.io)' }
+    }
+}
+```
+
+### Langkah 2: Tambahkan Dependensi
+Tambahkan baris berikut ke file build.gradle.kts pada level modul aplikasi Anda(misal: 2.0.0).
+```kotlin
+dependencies {
+    implementation 'com.github.Akmaloktav/GeoValidatorApp:Tag'
+}
+```
+
+---
+
+## Contoh Penggunaan Cepat
+Berikut adalah contoh lengkap cara menginisialisasi dan menggunakan GeoValidator di dalam sebuah Activity.
+```kotlin
+// Inisialisasi validator dan konfigurasikan aksi penanganan error
+val geoValidator = GeoValidator.Builder(this)
+    .setTargetLocation(latitude = -6.1753, longitude = 106.8271) // Contoh: Monas
+    .setRadius(500.0) // Radius 500 meter
+    .enableAdvancedValidation(true) // Aktifkan keamanan lapis kedua
+    // Atur aksi untuk setiap kategori error
+    .setOnSecurityError { message -> 
+        Toast.makeText(this, "KEAMANAN: $message", Toast.LENGTH_LONG).show() 
+    }
+    .setOnOperationalError { message -> 
+        Toast.makeText(this, "OPERASIONAL: $message", Toast.LENGTH_SHORT).show() 
+    }
+    .build()
+
+// Jalankan validasi
+fun startValidation() {
+    geoValidator.validate { result ->
+        runOnUiThread {
+            when (result) {
+                // Jika sukses, lanjutkan logika bisnis Anda
+                is ValidationResult.Success -> {
+                    val location = result.location
+                    Toast.makeText(this, "VALIDASI SUKSES di ${location.latitude}", Toast.LENGTH_SHORT).show()
+                    // Lakukan absensi...
+                }
+                // Jika gagal, cukup jalankan aksi yang sudah disiapkan
+                is ValidationResult.Failure -> {
+                    result.action()
+                }
+            }
+        }
+    }
+}
+```
+
+---
+
+## Opsi Konfigurasi (Builder)
+| Metode | Deskripsi |
+| --- | --- |
+| `setTargetLocation(lat, lon)` | **Wajib.** Mengatur titik pusat geofence. |
+| `setRadius(meter)` | Mengatur radius toleransi dalam meter. Default: `100.0`. |
+| `enableMockCheck(bool)` | Mengaktifkan/menonaktifkan deteksi `isMock`. Default: `true`. |
+| `enableAdvancedValidation(bool)` | Mengaktifkan/menonaktifkan verifikasi 2 langkah. Default: `false`. |
+| `setAccuracyThreshold(float)` | Mengatur ambang batas akurasi untuk memicu verifikasi lanjutan. Default: `5.0f`. |
+| `setOnFailureAction(type, action)` | Menetapkan aksi spesifik untuk satu `ErrorType`, menjadi prioritas utama. |
+| `setOnSecurityError(action)` | Menetapkan aksi untuk semua error kategori `SECURITY`. |
+| `setOnOperationalError(action)` | Menetapkan aksi untuk semua error kategori `OPERATIONAL`. |
+| `setOnSetupError(action)`| Menetapkan aksi untuk semua error kategori `SETUP`. |
+
+---
+
+## Lisensi
+Proyek ini dilisensikan di bawah MIT License. Lihat file LICENSE untuk detailnya.

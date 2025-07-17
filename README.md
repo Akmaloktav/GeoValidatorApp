@@ -25,21 +25,42 @@ Library ini menyediakan verifikasi berlapis, mulai dari pengecekan dasar hingga 
 ## Instalasi
 
 ### Langkah 1: Tambahkan JitPack ke Repositori Proyek
-Tambahkan URL JitPack di file `settings.gradle.kts` Anda:
+Tambahkan URL JitPack di file setting gradle Anda:
+
+**settings.gradle.kts**
 ```kotlin
 dependencyResolutionManagement {
     repositories {
         //...
-        maven { url '[https://jitpack.io](https://jitpack.io)' }
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+```
+
+**gradle**
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        //...
+        maven { url 'https://jitpack.io' }
     }
 }
 ```
 
 ### Langkah 2: Tambahkan Dependensi
-Tambahkan baris berikut ke file build.gradle.kts pada level modul aplikasi Anda(misal: 2.0.0).
+Tambahkan baris berikut ke file build gradle pada level modul aplikasi Anda(misal: 2.0.0).
+
+**build.gradle.kts**
 ```kotlin
 dependencies {
-    implementation 'com.github.Akmaloktav/GeoValidatorApp:Tag'
+    implementation("com.github.Akmaloktav:GeoValidatorApp:Tag")
+}
+```
+
+**gradle**
+```kotlin
+dependencies {
+    implementation 'com.github.Akmaloktav:GeoValidatorApp:Tag'
 }
 ```
 

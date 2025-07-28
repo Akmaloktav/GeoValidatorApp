@@ -37,12 +37,17 @@ class GeoValidator private constructor(
     private val accuracyThreshold: Float,
     private val errorActions: Map<ErrorType, () -> Unit>
 ) {
-    private val fusedLocationClient: FusedLocationProviderClient =
+//    private val fusedLocationClient: FusedLocationProviderClient =
+//        LocationServices.getFusedLocationProviderClient(context)
+
+    private val fusedLocationClient: FusedLocationProviderClient by lazy {
         LocationServices.getFusedLocationProviderClient(context)
+    }
 
     /**
      * Menjalankan proses validasi lokasi secara asynchronous.
-     * @param callback Fungsi yang akan dipanggil dengan hasil validasi, baik [ValidationResult.Success] atau [ValidationResult.Failure].
+     * @param callback Fungsi yang akan dipanggil dengan hasil validasi,
+     * baik [ValidationResult.Success] atau [ValidationResult.Failure].
      */
     @SuppressLint("MissingPermission")
     fun validate(callback: (ValidationResult) -> Unit) {
@@ -120,13 +125,37 @@ class GeoValidator private constructor(
         return ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun isWithinGeofence(location: Location): Boolean {
-        val distance = FloatArray(1)
-        Location.distanceBetween(location.latitude, location.longitude, targetLatitude, targetLongitude, distance)
-        return distance[0] <= radius
+    private fun calculateDistance(
+        lat1: Double, lon1: Double,
+        lat2: Double, lon2: Double
+    ): Double {
+        val r = 6371 // Radius bumi dalam km
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        return r * c * 1000 // Hasil dalam meter
     }
 
-    private fun isMockLocation(location: Location): Boolean {
+//    fun isWithinGeofence(location: Location): Boolean {
+//        val distance = FloatArray(1)
+//        Location.distanceBetween(location.latitude, location.longitude, targetLatitude, targetLongitude, distance)
+//        return distance[0] <= radius
+//    }
+
+    internal fun isWithinGeofence(location: Location): Boolean {
+        val distance = calculateDistance(
+            lat1 = location.latitude,
+            lon1 = location.longitude,
+            lat2 = targetLatitude,
+            lon2 = targetLongitude
+        )
+        return distance <= radius
+    }
+
+    internal fun isMockLocation(location: Location): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) location.isMock else @Suppress("DEPRECATION") location.isFromMockProvider
     }
 

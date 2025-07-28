@@ -43,6 +43,10 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:4.5.1")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
 }
 
 publishing {
@@ -50,7 +54,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.github.Akmaloktav"
             artifactId = "geovalidator"
-            version = "2.0.0"
+            version = "2.0.1"
             afterEvaluate {
                 from(components["release"])
             }

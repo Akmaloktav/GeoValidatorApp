@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.akmal.geoattendanceapp.databinding.ActivityMainBinding
@@ -30,31 +31,33 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // ## LANGKAH 1: PERBARUI INISIALISASI GEOVALIDATOR ##
+        // Konfigurasi GeoValidator dengan error handler yang menggunakan AlertDialog
         geoValidator = GeoValidator.Builder(this)
             .setTargetLocation(latitude = -5.3699466, longitude = 105.2720512)
-            .setRadius(500.0)
+            .setRadius(500.0) // Radius 500 meter
             .enableMockLocationCheck(true)
-            .enableAdvancedValidation(true) // Aktifkan validasi lanjutan
-
-            // Definisikan aksi untuk setiap kategori error
+            .enableAdvancedValidation(true)
+            .enableMockAppCheck(true)
             .setOnSecurityError { message ->
-                // Aksi untuk MOCK_LOCATION dan UNNATURAL_LOCATION
-                binding.tvResult.text = "GAGAL:\n$message"
+                // Peringatan keamanan (Mock & Unnatural) akan menampilkan dialog
+                showSecurityAlert(message)
             }
             .setOnOperationalError { message ->
-                // Aksi untuk OUTSIDE_GEOFENCE dan LOCATION_UNAVAILABLE
+                // Error operasional (di luar radius, dll) akan menampilkan teks
                 binding.tvResult.text = "Gagal: $message"
             }
-            // Definisikan aksi spesifik jika perlu (opsional)
             .setOnFailureAction(ErrorType.PERMISSION_MISSING) {
                 binding.tvResult.text = "Gagal: Izin lokasi tidak ada."
             }
             .build()
 
+        // Listener untuk tombol validasi manual
         binding.btnValidate.setOnClickListener {
             checkPermissionAndValidate()
         }
+
+        // Lakukan validasi pertama kali secara otomatis saat Activity dibuat
+        checkPermissionAndValidate()
     }
 
     private fun checkPermissionAndValidate() {
@@ -82,14 +85,32 @@ class MainActivity : AppCompatActivity() {
                         val lng = result.location.longitude
                         binding.tvResult.text = "SUKSES!\nLokasi Anda valid di:\nLat: $lat\nLng: $lng"
                     }
-
-                    // ## LANGKAH 2: SEDERHANAKAN PENANGANAN FAILURE ##
-                    // Cukup panggil aksi yang sudah kita definisikan di atas
                     is ValidationResult.Failure -> {
+                        // Cukup panggil aksi yang sudah didefinisikan di Builder
                         result.action()
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Fungsi helper untuk menampilkan AlertDialog peringatan keamanan.
+     * Mirip dengan yang ada di AttendanceDetailActivity Anda.
+     */
+    private fun showSecurityAlert(message: String) {
+        // Jika ada dialog lain yang sedang tampil, jangan tampilkan lagi
+        if (isFinishing || isDestroyed) return
+
+        AlertDialog.Builder(this)
+            .setTitle("Peringatan Keamanan")
+            .setMessage(message)
+            .setPositiveButton("Mengerti") { dialog, _ ->
+                dialog.dismiss()
+                // Setelah dialog ditutup, tampilkan status terakhir
+                binding.tvResult.text = "Siap untuk validasi berikutnya..."
+            }
+            .setCancelable(false)
+            .show()
     }
 }

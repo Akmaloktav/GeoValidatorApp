@@ -28,5 +28,11 @@ enum class ErrorType(val category: ErrorCategory) {
     /**
      * Lokasi terdeteksi tidak wajar setelah melalui verifikasi dua langkah.
      */
-    UNNATURAL_LOCATION_DETECTED(ErrorCategory.SECURITY)
+    UNNATURAL_LOCATION_DETECTED(ErrorCategory.SECURITY),
+
+    /**
+    * Terdeteksi bahwa sebuah aplikasi telah ditetapkan sebagai "aplikasi lokasi palsu"
+    * di dalam Opsi Pengembang.
+    */
+    MOCK_LOCATION_APP_SET(ErrorCategory.SECURITY)
 }

@@ -2,13 +2,19 @@ package com.akmal.geovalidator
 
 import android.content.Context
 import android.location.Location
+import android.os.Build
 import org.junit.Assert.*
 
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE)
 class GeoValidatorTest {
 
     private lateinit var mockContext: Context
@@ -61,66 +67,137 @@ class GeoValidatorTest {
         assertEquals(false, result)
     }
 
+//    @Test
+//    fun `isMockLocation returns true when location is from mock provider`() {
+//        // 1. Arrange
+//        // Kita atur agar mockLocation dianggap sebagai lokasi palsu.
+//        // Kita gunakan isFromMockProvider karena ini yang paling umum.
+//        whenever(mockLocation.isFromMockProvider).thenReturn(true)
+//
+//        // Kita hanya butuh instance GeoValidator, konfigurasinya tidak terlalu penting di sini
+//        val geoValidator = GeoValidator.Builder(mockContext)
+//            .setTargetLocation(0.0, 0.0)
+//            .build()
+//
+//        // 2. Act
+//        val result = geoValidator.isMockLocation(mockLocation)
+//
+//        // 3. Assert
+//        assertEquals(true, result)
+//    }
+//
+//    @Test
+//    fun `isMockLocation returns false when location is not from mock provider`() {
+//        // 1. Arrange
+//        // Kita atur agar mockLocation dianggap sebagai lokasi asli.
+//        whenever(mockLocation.isFromMockProvider).thenReturn(false)
+//
+//        val geoValidator = GeoValidator.Builder(mockContext)
+//            .setTargetLocation(0.0, 0.0)
+//            .build()
+//
+//        // 2. Act
+//        val result = geoValidator.isMockLocation(mockLocation)
+//
+//        // 3. Assert
+//        assertEquals(false, result)
+//    }
+@Test
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.R])
+fun `isMockLocation on old SDK returns true when from mock provider`() {
+    // Arrange
+    val geoValidator = GeoValidator.Builder(mockContext).setTargetLocation(0.0, 0.0).build()
+    whenever(mockLocation.isFromMockProvider).thenReturn(true) // Cukup ini saja
+
+    // Act
+    val result = geoValidator.isMockLocation(mockLocation)
+
+    // Assert
+    assertEquals(true, result)
+}
+
     @Test
-    fun `isMockLocation returns true when location is from mock provider`() {
-        // 1. Arrange
-        // Kita atur agar mockLocation dianggap sebagai lokasi palsu.
-        // Kita gunakan isFromMockProvider karena ini yang paling umum.
-        whenever(mockLocation.isFromMockProvider).thenReturn(true)
-
-        // Kita hanya butuh instance GeoValidator, konfigurasinya tidak terlalu penting di sini
-        val geoValidator = GeoValidator.Builder(mockContext)
-            .setTargetLocation(0.0, 0.0)
-            .build()
-
-        // 2. Act
-        val result = geoValidator.isMockLocation(mockLocation)
-
-        // 3. Assert
-        assertEquals(true, result)
-    }
-
-    @Test
-    fun `isMockLocation returns false when location is not from mock provider`() {
-        // 1. Arrange
-        // Kita atur agar mockLocation dianggap sebagai lokasi asli.
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.R]) // Mensimulasikan Android 11 (sebelum S)
+    fun `isMockLocation on old SDK returns false when not from mock provider`() {
+        // Arrange
+        val geoValidator = GeoValidator.Builder(mockContext).setTargetLocation(0.0, 0.0).build()
         whenever(mockLocation.isFromMockProvider).thenReturn(false)
 
-        val geoValidator = GeoValidator.Builder(mockContext)
-            .setTargetLocation(0.0, 0.0)
-            .build()
-
-        // 2. Act
+        // Act
         val result = geoValidator.isMockLocation(mockLocation)
 
-        // 3. Assert
+        // Assert
         assertEquals(false, result)
     }
 
     @Test
-    fun `builder correctly builds instance with given configuration`() {
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S])
+    fun `isMockLocation on new SDK returns true when isMock is true`() {
+        // Arrange
+        val geoValidator = GeoValidator.Builder(mockContext).setTargetLocation(0.0, 0.0).build()
+        whenever(mockLocation.isMock).thenReturn(true) // Cukup ini saja
+
+        // Act
+        val result = geoValidator.isMockLocation(mockLocation)
+
+        // Assert
+        assertEquals(true, result)
+    }
+
+    @Test
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S]) // Mensimulasikan Android 12 (S)
+    fun `isMockLocation on new SDK returns false when isMock is false`() {
+        // Arrange
+        val geoValidator = GeoValidator.Builder(mockContext).setTargetLocation(0.0, 0.0).build()
+        whenever(mockLocation.isMock).thenReturn(false)
+
+        // Act
+        val result = geoValidator.isMockLocation(mockLocation)
+
+        // Assert
+        assertEquals(false, result)
+    }
+
+    @Test
+    fun `builder correctly builds instance with all configurations`() {
         // 1. Arrange
         val testRadius = 150.5
         val testLat = -7.257472
         val testLng = 112.752088
+        val mockCheck = true
+        val advancedValidation = true
+        val mockAppCheck = true
 
         // 2. Act
         val geoValidator = GeoValidator.Builder(mockContext)
             .setTargetLocation(testLat, testLng)
             .setRadius(testRadius)
-            .enableMockLocationCheck(true)
+            .enableMockLocationCheck(mockCheck)
+            .enableAdvancedValidation(advancedValidation)
+            .enableMockAppCheck(mockAppCheck)
             .build()
 
         // 3. Assert
-        // Kita gunakan refleksi untuk mengakses field private dan memverifikasi nilainya
+        // Gunakan refleksi untuk mengakses field private dan memverifikasi nilainya
         val radiusField = geoValidator::class.java.getDeclaredField("radius")
         radiusField.isAccessible = true
-        val actualRadius = radiusField.getDouble(geoValidator)
-        assertEquals(testRadius, actualRadius, 0.0)
+        assertEquals(testRadius, radiusField.getDouble(geoValidator), 0.0)
 
         val latField = geoValidator::class.java.getDeclaredField("targetLatitude")
         latField.isAccessible = true
-        val actualLat = latField.getDouble(geoValidator)
-        assertEquals(testLat, actualLat, 0.0)
+        assertEquals(testLat, latField.getDouble(geoValidator), 0.0)
+
+        val mockCheckField = geoValidator::class.java.getDeclaredField("enableMockCheck")
+        mockCheckField.isAccessible = true
+        assertEquals(mockCheck, mockCheckField.getBoolean(geoValidator))
+
+        val advancedValidationField = geoValidator::class.java.getDeclaredField("enableAdvancedValidation")
+        advancedValidationField.isAccessible = true
+        assertEquals(advancedValidation, advancedValidationField.getBoolean(geoValidator))
+
+        // Verifikasi untuk properti baru yang kita tambahkan
+        val mockAppCheckField = geoValidator::class.java.getDeclaredField("enableMockAppCheck")
+        mockAppCheckField.isAccessible = true
+        assertEquals(mockAppCheck, mockAppCheckField.getBoolean(geoValidator))
     }
 }

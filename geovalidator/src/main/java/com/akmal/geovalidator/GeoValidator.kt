@@ -7,6 +7,7 @@ import android.location.Location
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -24,6 +25,7 @@ import com.google.android.gms.tasks.CancellationTokenSource
  * @property radius Jarak radius yang diizinkan dari lokasi target (dalam meter).
  * @property enableMockCheck Jika true, melakukan pengecekan lokasi palsu (isMock).
  * @property enableAdvancedValidation Jika true, mengaktifkan verifikasi dua langkah untuk anomali.
+ * @property enableMockAppCheck Jika true, melakukan pengecekan apakah ada 'aplikasi lokasi palsu' yang diatur di Opsi Pengembang.
  * @property accuracyThreshold Ambang batas akurasi untuk memicu verifikasi dua langkah.
  * @property errorActions Peta yang berisi [ErrorType] dan aksi (lambda) yang sesuai untuk dieksekusi saat gagal.
  */
@@ -34,7 +36,8 @@ class GeoValidator private constructor(
     private val radius: Double,
     private val enableMockCheck: Boolean,
     private val enableAdvancedValidation: Boolean,
-    private val accuracyThreshold: Float,
+    private val enableMockAppCheck: Boolean,
+//    private val accuracyThreshold: Float,
     private val errorActions: Map<ErrorType, () -> Unit>
 ) {
 //    private val fusedLocationClient: FusedLocationProviderClient =
@@ -51,6 +54,11 @@ class GeoValidator private constructor(
      */
     @SuppressLint("MissingPermission")
     fun validate(callback: (ValidationResult) -> Unit) {
+        if (enableMockAppCheck && isMockLocationAppSet()) {
+            handleFailure(ErrorType.MOCK_LOCATION_APP_SET, callback)
+            return
+        }
+
         if (!hasLocationPermission()) {
             handleFailure(ErrorType.PERMISSION_MISSING, callback)
             return
@@ -68,10 +76,18 @@ class GeoValidator private constructor(
                     return@addOnSuccessListener
                 }
 
-                if (enableAdvancedValidation && location.accuracy < this.accuracyThreshold) {
-                    Log.d("GeoValidator", "Akurasi mencurigakan (${location.accuracy}m). Memulai verifikasi 2 langkah.")
+//                if (enableAdvancedValidation && location.accuracy < this.accuracyThreshold) {
+//                    Log.d("GeoValidator", "Akurasi mencurigakan (${location.accuracy}m). Memulai verifikasi 2 langkah.")
+//                    performSecondCheck(location, callback)
+//                } else {
+//                    performGeofenceCheck(location, callback)
+//                }
+                if (enableAdvancedValidation) {
+                    // Selalu jalankan verifikasi 2 langkah jika mock check dasar gagal
+                    Log.d("GeoValidator", "Mock check dasar lolos. Memulai verifikasi 2 langkah (analisis statis).")
                     performSecondCheck(location, callback)
                 } else {
+                    // Jika validasi lanjutan tidak aktif, langsung ke geofence
                     performGeofenceCheck(location, callback)
                 }
             }
@@ -91,6 +107,37 @@ class GeoValidator private constructor(
         } ?: Log.e("GeoValidator", "No action defined for ErrorType: $errorType")
     }
 
+//    @SuppressLint("MissingPermission")
+//    private fun performSecondCheck(firstLocation: Location, callback: (ValidationResult) -> Unit) {
+//        Handler(Looper.getMainLooper()).postDelayed({
+//            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, CancellationTokenSource().token)
+//                .addOnSuccessListener { secondLocation ->
+//                    if (secondLocation == null) {
+//                        handleFailure(ErrorType.LOCATION_UNAVAILABLE, callback)
+//                        return@addOnSuccessListener
+//                    }
+//                    val isStatic = firstLocation.accuracy == secondLocation.accuracy && firstLocation.latitude == secondLocation.latitude
+//                    if (isStatic) {
+//                        Log.w("GeoValidator", "Verifikasi gagal. Data lokasi statis.")
+//                        handleFailure(ErrorType.UNNATURAL_LOCATION_DETECTED, callback)
+//                    } else {
+//                        Log.d("GeoValidator", "Verifikasi berhasil. Terdeteksi fluktuasi alami.")
+//                        performGeofenceCheck(firstLocation, callback)
+//                    }
+//                }
+//                .addOnFailureListener { handleFailure(ErrorType.LOCATION_UNAVAILABLE, callback) }
+//        }, 2000)
+//    }
+
+    /**
+     * Melakukan verifikasi dua langkah yang cerdas untuk mendeteksi anomali lokasi.
+     * Fungsi ini mengambil lokasi kedua setelah jeda waktu, lalu membandingkannya dengan lokasi pertama.
+     * Validasi akan gagal jika data lokasi (lat, lon, akurasi) identik tetapi timestamp-nya berbeda,
+     * yang merupakan indikator kuat dari mock location yang aktif.
+     *
+     * @param firstLocation Lokasi pertama yang akan dijadikan acuan perbandingan.
+     * @param callback Fungsi yang akan dipanggil dengan hasil akhir validasi.
+     */
     @SuppressLint("MissingPermission")
     private fun performSecondCheck(firstLocation: Location, callback: (ValidationResult) -> Unit) {
         Handler(Looper.getMainLooper()).postDelayed({
@@ -100,19 +147,40 @@ class GeoValidator private constructor(
                         handleFailure(ErrorType.LOCATION_UNAVAILABLE, callback)
                         return@addOnSuccessListener
                     }
-                    val isStatic = firstLocation.accuracy == secondLocation.accuracy && firstLocation.latitude == secondLocation.latitude
-                    if (isStatic) {
-                        Log.w("GeoValidator", "Verifikasi gagal. Data lokasi statis.")
+
+                    // Memeriksa apakah semua data lokasi (lat, lon, akurasi) sama persis.
+                    val isDataIdentical = firstLocation.latitude == secondLocation.latitude &&
+                            firstLocation.longitude == secondLocation.longitude &&
+                            firstLocation.accuracy == secondLocation.accuracy
+
+                    // Memeriksa apakah waktu (timestamp) dari lokasi juga sama.
+                    val isTimestampIdentical = firstLocation.time == secondLocation.time
+
+                    // GAGAL HANYA JIKA: Data lokasi sama persis TETAPI timestamp-nya berbeda.
+                    // Ini adalah indikator kuat dari aplikasi mock yang terus menghasilkan data statis.
+                    if (isDataIdentical && !isTimestampIdentical) {
+                        Log.w("GeoValidator", "Verifikasi gagal. Terdeteksi data lokasi statis dengan timestamp baru.")
                         handleFailure(ErrorType.UNNATURAL_LOCATION_DETECTED, callback)
                     } else {
-                        Log.d("GeoValidator", "Verifikasi berhasil. Terdeteksi fluktuasi alami.")
+                        // Lolos jika:
+                        // 1. Data lokasi berfluktuasi secara alami.
+                        // 2. Data dan timestamp sama (kemungkinan besar lokasi cache dari pengguna asli yang diam).
+                        Log.d("GeoValidator", "Verifikasi berhasil. Terdeteksi fluktuasi alami atau lokasi cache yang valid.")
                         performGeofenceCheck(firstLocation, callback)
                     }
                 }
                 .addOnFailureListener { handleFailure(ErrorType.LOCATION_UNAVAILABLE, callback) }
-        }, 2000)
+        }, 2000) // Jeda 2 detik
     }
 
+
+    /**
+     * Memeriksa apakah lokasi pengguna berada di dalam area geofence yang telah ditentukan.
+     * Jika lokasi berada di luar radius, validasi akan gagal dengan [ErrorType.OUTSIDE_GEOFENCE].
+     *
+     * @param location Lokasi pengguna saat ini yang akan divalidasi.
+     * @param callback Fungsi yang akan dipanggil dengan hasil akhir validasi.
+     */
     private fun performGeofenceCheck(location: Location, callback: (ValidationResult) -> Unit) {
         if (!isWithinGeofence(location)) {
             handleFailure(ErrorType.OUTSIDE_GEOFENCE, callback)
@@ -121,6 +189,12 @@ class GeoValidator private constructor(
         callback(ValidationResult.Success(location))
     }
 
+    /**
+     * Fungsi helper untuk memeriksa apakah izin [android.Manifest.permission.ACCESS_FINE_LOCATION]
+     * telah diberikan oleh pengguna.
+     *
+     * @return `true` jika izin diberikan, `false` jika sebaliknya.
+     */
     private fun hasLocationPermission(): Boolean {
         return ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
@@ -145,6 +219,14 @@ class GeoValidator private constructor(
 //        return distance[0] <= radius
 //    }
 
+    /**
+     * Menghitung jarak dari lokasi saat ini ke lokasi target menggunakan formula Haversine
+     * dan membandingkannya dengan radius yang diizinkan.
+     * Dibuat `internal` untuk kemudahan pengujian.
+     *
+     * @param location Lokasi yang akan diperiksa.
+     * @return `true` jika jarak kurang dari atau sama dengan radius, `false` jika sebaliknya.
+     */
     internal fun isWithinGeofence(location: Location): Boolean {
         val distance = calculateDistance(
             lat1 = location.latitude,
@@ -155,8 +237,32 @@ class GeoValidator private constructor(
         return distance <= radius
     }
 
+    /**
+     * Memeriksa apakah sebuah [Location] berasal dari penyedia lokasi palsu (mock provider).
+     * Menangani perbedaan API untuk kompatibilitas ke belakang (sebelum dan sesudah Android S).
+     * Dibuat `internal` untuk kemudahan pengujian.
+     *
+     * @param location Objek Lokasi yang akan diperiksa.
+     * @return `true` jika lokasi ditandai sebagai mock, `false` jika sebaliknya.
+     */
     internal fun isMockLocation(location: Location): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) location.isMock else @Suppress("DEPRECATION") location.isFromMockProvider
+    }
+
+    /**
+     * Memeriksa apakah ada aplikasi yang telah ditetapkan sebagai "aplikasi lokasi palsu"
+     * di dalam Opsi Pengembang. Ini adalah indikator yang jauh lebih kuat daripada
+     * hanya memeriksa apakah Opsi Pengembang aktif.
+     */
+    private fun isMockLocationAppSet(): Boolean {
+        return try {
+            val mockLocation = Settings.Secure.getString(context.contentResolver, Settings.Secure.ALLOW_MOCK_LOCATION)
+            // Mengembalikan true jika ada nama paket aplikasi yang diatur (tidak null dan bukan "0")
+            mockLocation != null && mockLocation != "0"
+        } catch (e: Exception) {
+            // Jika terjadi error saat membaca pengaturan, anggap tidak aktif demi keamanan.
+            false
+        }
     }
 
     /**
@@ -169,6 +275,7 @@ class GeoValidator private constructor(
         private var radius: Double = 100.0
         private var enableMockCheck: Boolean = true
         private var enableAdvancedValidation: Boolean = false
+        private var enableMockAppCheck: Boolean = true
         private var accuracyThreshold: Float = 5.0f
 
         private val specificActions = mutableMapOf<ErrorType, () -> Unit>()
@@ -178,13 +285,15 @@ class GeoValidator private constructor(
             ErrorType.LOCATION_UNAVAILABLE to "Gagal mendapatkan lokasi Anda. Pastikan GPS aktif.",
             ErrorType.MOCK_LOCATION_DETECTED to "Penggunaan lokasi palsu tidak diizinkan.",
             ErrorType.OUTSIDE_GEOFENCE to "Anda berada di luar area yang ditentukan.",
-            ErrorType.UNNATURAL_LOCATION_DETECTED to "Terdeteksi data lokasi yang tidak wajar."
+            ErrorType.UNNATURAL_LOCATION_DETECTED to "Terdeteksi data lokasi yang tidak wajar.",
+            ErrorType.MOCK_LOCATION_APP_SET to "Aplikasi lokasi palsu terdeteksi di pengaturan perangkat Anda."
         )
 
         fun setTargetLocation(latitude: Double, longitude: Double) = apply { this.targetLatitude = latitude; this.targetLongitude = longitude }
         fun setRadius(radius: Double) = apply { this.radius = radius }
         fun enableMockLocationCheck(enabled: Boolean) = apply { this.enableMockCheck = enabled }
         fun enableAdvancedValidation(enabled: Boolean) = apply { this.enableAdvancedValidation = enabled }
+        fun enableMockAppCheck(enabled: Boolean) = apply { this.enableMockAppCheck = enabled }
         fun setAccuracyThreshold(threshold: Float) = apply { this.accuracyThreshold = threshold }
 
         /**
@@ -264,7 +373,8 @@ class GeoValidator private constructor(
                 radius = radius,
                 enableMockCheck = enableMockCheck,
                 enableAdvancedValidation = enableAdvancedValidation,
-                accuracyThreshold = accuracyThreshold,
+                enableMockAppCheck = enableMockAppCheck,
+//                accuracyThreshold = accuracyThreshold,
                 errorActions = resolvedActions
             )
         }

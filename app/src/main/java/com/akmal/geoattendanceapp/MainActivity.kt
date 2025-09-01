@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
 
         // Konfigurasi GeoValidator dengan error handler yang menggunakan AlertDialog
         geoValidator = GeoValidator.Builder(this)
-            .setTargetLocation(latitude = -5.3699466, longitude = 105.2720512)
+            .setTargetLocation(latitude = -6.175221728504924, longitude = 106.82719570912641) // Monas
             .setRadius(500.0) // Radius 500 meter
             .enableMockLocationCheck(true)
             .enableAdvancedValidation(true)

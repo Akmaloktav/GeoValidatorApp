@@ -37,11 +37,8 @@ class GeoValidator private constructor(
     private val enableMockCheck: Boolean,
     private val enableAdvancedValidation: Boolean,
     private val enableMockAppCheck: Boolean,
-//    private val accuracyThreshold: Float,
     private val errorActions: Map<ErrorType, () -> Unit>
 ) {
-//    private val fusedLocationClient: FusedLocationProviderClient =
-//        LocationServices.getFusedLocationProviderClient(context)
 
     private val fusedLocationClient: FusedLocationProviderClient by lazy {
         LocationServices.getFusedLocationProviderClient(context)
@@ -76,12 +73,6 @@ class GeoValidator private constructor(
                     return@addOnSuccessListener
                 }
 
-//                if (enableAdvancedValidation && location.accuracy < this.accuracyThreshold) {
-//                    Log.d("GeoValidator", "Akurasi mencurigakan (${location.accuracy}m). Memulai verifikasi 2 langkah.")
-//                    performSecondCheck(location, callback)
-//                } else {
-//                    performGeofenceCheck(location, callback)
-//                }
                 if (enableAdvancedValidation) {
                     // Selalu jalankan verifikasi 2 langkah jika mock check dasar gagal
                     Log.d("GeoValidator", "Mock check dasar lolos. Memulai verifikasi 2 langkah (analisis statis).")
@@ -106,28 +97,6 @@ class GeoValidator private constructor(
             callback(ValidationResult.Failure(action))
         } ?: Log.e("GeoValidator", "No action defined for ErrorType: $errorType")
     }
-
-//    @SuppressLint("MissingPermission")
-//    private fun performSecondCheck(firstLocation: Location, callback: (ValidationResult) -> Unit) {
-//        Handler(Looper.getMainLooper()).postDelayed({
-//            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, CancellationTokenSource().token)
-//                .addOnSuccessListener { secondLocation ->
-//                    if (secondLocation == null) {
-//                        handleFailure(ErrorType.LOCATION_UNAVAILABLE, callback)
-//                        return@addOnSuccessListener
-//                    }
-//                    val isStatic = firstLocation.accuracy == secondLocation.accuracy && firstLocation.latitude == secondLocation.latitude
-//                    if (isStatic) {
-//                        Log.w("GeoValidator", "Verifikasi gagal. Data lokasi statis.")
-//                        handleFailure(ErrorType.UNNATURAL_LOCATION_DETECTED, callback)
-//                    } else {
-//                        Log.d("GeoValidator", "Verifikasi berhasil. Terdeteksi fluktuasi alami.")
-//                        performGeofenceCheck(firstLocation, callback)
-//                    }
-//                }
-//                .addOnFailureListener { handleFailure(ErrorType.LOCATION_UNAVAILABLE, callback) }
-//        }, 2000)
-//    }
 
     /**
      * Melakukan verifikasi dua langkah yang cerdas untuk mendeteksi anomali lokasi.
@@ -213,12 +182,6 @@ class GeoValidator private constructor(
         return r * c * 1000 // Hasil dalam meter
     }
 
-//    fun isWithinGeofence(location: Location): Boolean {
-//        val distance = FloatArray(1)
-//        Location.distanceBetween(location.latitude, location.longitude, targetLatitude, targetLongitude, distance)
-//        return distance[0] <= radius
-//    }
-
     /**
      * Menghitung jarak dari lokasi saat ini ke lokasi target menggunakan formula Haversine
      * dan membandingkannya dengan radius yang diizinkan.
@@ -276,7 +239,6 @@ class GeoValidator private constructor(
         private var enableMockCheck: Boolean = true
         private var enableAdvancedValidation: Boolean = false
         private var enableMockAppCheck: Boolean = true
-        private var accuracyThreshold: Float = 5.0f
 
         private val specificActions = mutableMapOf<ErrorType, () -> Unit>()
         private val categoryActions = mutableMapOf<ErrorCategory, (message: String) -> Unit>()
@@ -294,7 +256,6 @@ class GeoValidator private constructor(
         fun enableMockLocationCheck(enabled: Boolean) = apply { this.enableMockCheck = enabled }
         fun enableAdvancedValidation(enabled: Boolean) = apply { this.enableAdvancedValidation = enabled }
         fun enableMockAppCheck(enabled: Boolean) = apply { this.enableMockAppCheck = enabled }
-        fun setAccuracyThreshold(threshold: Float) = apply { this.accuracyThreshold = threshold }
 
         /**
          * Menetapkan aksi kustom untuk sebuah [ErrorType] spesifik.
@@ -374,7 +335,6 @@ class GeoValidator private constructor(
                 enableMockCheck = enableMockCheck,
                 enableAdvancedValidation = enableAdvancedValidation,
                 enableMockAppCheck = enableMockAppCheck,
-//                accuracyThreshold = accuracyThreshold,
                 errorActions = resolvedActions
             )
         }

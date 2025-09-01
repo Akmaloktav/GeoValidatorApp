@@ -4,7 +4,6 @@ import android.content.Context
 import android.location.Location
 import android.os.Build
 import org.junit.Assert.*
-
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -67,41 +66,6 @@ class GeoValidatorTest {
         assertEquals(false, result)
     }
 
-//    @Test
-//    fun `isMockLocation returns true when location is from mock provider`() {
-//        // 1. Arrange
-//        // Kita atur agar mockLocation dianggap sebagai lokasi palsu.
-//        // Kita gunakan isFromMockProvider karena ini yang paling umum.
-//        whenever(mockLocation.isFromMockProvider).thenReturn(true)
-//
-//        // Kita hanya butuh instance GeoValidator, konfigurasinya tidak terlalu penting di sini
-//        val geoValidator = GeoValidator.Builder(mockContext)
-//            .setTargetLocation(0.0, 0.0)
-//            .build()
-//
-//        // 2. Act
-//        val result = geoValidator.isMockLocation(mockLocation)
-//
-//        // 3. Assert
-//        assertEquals(true, result)
-//    }
-//
-//    @Test
-//    fun `isMockLocation returns false when location is not from mock provider`() {
-//        // 1. Arrange
-//        // Kita atur agar mockLocation dianggap sebagai lokasi asli.
-//        whenever(mockLocation.isFromMockProvider).thenReturn(false)
-//
-//        val geoValidator = GeoValidator.Builder(mockContext)
-//            .setTargetLocation(0.0, 0.0)
-//            .build()
-//
-//        // 2. Act
-//        val result = geoValidator.isMockLocation(mockLocation)
-//
-//        // 3. Assert
-//        assertEquals(false, result)
-//    }
 @Test
 @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.R])
 fun `isMockLocation on old SDK returns true when from mock provider`() {

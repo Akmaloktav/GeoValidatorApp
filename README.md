@@ -146,7 +146,7 @@ fun checkLocationPermission() {
 | `setRadius(meter)` | Mengatur radius toleransi dalam meter. Default: `100.0`. |
 | `enableMockCheck(bool)` | Mengaktifkan/menonaktifkan deteksi `isMock`. Default: `true`. |
 | `enableAdvancedValidation(bool)` | Mengaktifkan/menonaktifkan verifikasi 2 langkah. Default: `false`. |
-| `setAccuracyThreshold(float)` | Mengatur ambang batas akurasi untuk memicu verifikasi lanjutan. Default: `5.0f`. |
+| `enableMockAppCheck(bool)` | Mengaktifkan/menonaktifkan deteksi "aplikasi lokasi palsu" di Opsi Pengembang. Default: true.. |
 | `setOnFailureAction(type, action)` | Menetapkan aksi spesifik untuk satu `ErrorType`, menjadi prioritas utama. |
 | `setOnSecurityError(action)` | Menetapkan aksi untuk semua error kategori `SECURITY`. |
 | `setOnOperationalError(action)` | Menetapkan aksi untuk semua error kategori `OPERATIONAL`. |
